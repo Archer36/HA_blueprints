@@ -57,6 +57,11 @@ blueprint:
   domain: automation
   source_url: https://github.com/SgtBatten/HA_blueprints/blob/main/Frigate%20Camera%20Notifications/Stable
   input:
+    mqtt_topic:
+      name: MQTT Topic
+      description: |
+        The name of the MQTT Topic that Frigate publishes notifications to. This is normally "frigate/events"
+      default: "frigate/events"
     camera:
       name: Frigate Camera
       description: |
@@ -542,6 +547,7 @@ blueprint:
         boolean:
 mode: parallel
 trigger_variables:
+  input_mqtt_topic: !input mqtt_topic
   input_camera: !input camera
   camera: "{{ input_camera | replace('camera.', '') }}"
 trigger:
@@ -551,11 +557,12 @@ trigger:
       action: "silence-{{ camera }}"
     id: silence
   - platform: mqtt
-    topic: frigate/events
+    topic: {{ input_mqtt_topic }}
     payload: "{{ camera }}/new"
     value_template: "{{ value_json['after']['camera'] | lower | replace('-','_') }}/{{ value_json['type']}}"
     id: frigate-event
 variables:
+  input_mqtt_topic: !input mqtt_topic
   input_camera: !input camera
   camera: "{{ input_camera | replace('camera.', '') }}"
   camera_name: "{{ camera | replace('_', ' ') | title }}"
@@ -836,7 +843,7 @@ action:
               sequence:
                 - wait_for_trigger:
                     - platform: mqtt
-                      topic: frigate/events
+                      topic: {{ input_mqtt_topic }}
                       payload: "{{ id }}"
                       value_template: "{{ value_json['after']['id'] }}"
                   timeout:
